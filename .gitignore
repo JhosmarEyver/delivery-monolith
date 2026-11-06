@@ -1,0 +1,21 @@
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Python y compilados
+__pycache__/
+*.py[cod]
+*$py.class
+*.ipynb_checkpoints
+
+# Archivos de configuración de entorno y secretos
+.env
+
+# Docker y bases de datos locales
+postgres_data/
+
+# IDEs
+.vscode/
+.idea/
+*.log
