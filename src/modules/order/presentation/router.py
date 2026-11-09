@@ -38,6 +38,18 @@ def create_order(
 
 
 # ============================================================
+# Health check del módulo (va antes de /{order_id} para que no lo capture)
+# ============================================================
+
+@router.get("/health")
+def order_health():
+    return {
+        "module": "order",
+        "status": "ok"
+    }
+
+
+# ============================================================
 # Obtener pedido
 # ============================================================
 
@@ -53,17 +65,5 @@ def get_order(
             "Hamburguesa",
             "Papas"
         ]
-    }
-
-
-# ============================================================
-# Health check del módulo
-# ============================================================
-
-@router.get("/health")
-def order_health():
-    return {
-        "module": "order",
-        "status": "ok"
     }
 

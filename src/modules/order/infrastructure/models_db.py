@@ -5,7 +5,7 @@
 Modelos ORM de las tablas pedido y detalle_pedido.
 '''
 
-from sqlalchemy import Column, Integer, String, Boolean, Numeric, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, Numeric, DateTime, Text, ForeignKey, func
 from sqlalchemy.orm import relationship
 from src.core.database import Base
 
@@ -14,7 +14,7 @@ class PedidoModel(Base):
     __tablename__ = "pedido"
 
     pedido_id = Column(Integer, primary_key=True, index=True)
-    fecha_hora = Column(DateTime, nullable=False)
+    fecha_hora = Column(DateTime, nullable=False, server_default=func.now())
     sum_total = Column(Numeric(10, 2), nullable=False, default=0.00)
     notas_cliente = Column(Text)
     estado = Column(String(30), default="Pendiente")
@@ -33,6 +33,12 @@ class PedidoModel(Base):
     detalles = relationship(
         "DetallePedidoModel",
         back_populates="pedido",
+        cascade="all, delete-orphan"
+    )
+    pago = relationship(
+        "PagoModel",
+        back_populates="pedido",
+        uselist=False,
         cascade="all, delete-orphan"
     )
 

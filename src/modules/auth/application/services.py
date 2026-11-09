@@ -1,30 +1,39 @@
-from sqlalchemy.orm import Session
-from src.modules.auth.infrastructure.repository_impl import AuthRepositorySqlAlchemy
-from src.modules.auth.infrastructure.models_db import UsuarioModel
-from src.modules.auth.domain.exceptions import EmailYaRegistradoException
+from typing import List
+
+from src.modules.auth.domain.exceptions import EmailYaRegistradoException, UsuarioNoEncontradoException
+from src.modules.auth.domain.models import Usuario
+from src.modules.auth.domain.repositories import IAuthRepository
 from src.modules.auth.presentation.schemas import UsuarioCreate
 
-class AuthService:
-    def __init__(self, db: Session):
-        self.repository = AuthRepositorySqlAlchemy(db)
 
-    def registrar_usuario(self, data: UsuarioCreate) -> UsuarioModel:
-        # 1. Regla de negocio: Verificar si el email ya existe
-        usuario_existente = self.repository.obtener_por_email(data.email)
-        if usuario_existente:
+class AuthService:
+    # El servicio depende del contrato (IAuthRepository), no de SQLAlchemy.
+    # La implementación concreta se inyecta desde la capa de presentación.
+    def __init__(self, repository: IAuthRepository):
+        self.repository = repository
+
+    def registrar_usuario(self, data: UsuarioCreate) -> Usuario:
+        # 1. Regla de negocio: el email no puede estar registrado
+        if self.repository.obtener_por_email(data.email):
             raise EmailYaRegistradoException(f"El correo {data.email} ya está registrado en el sistema.")
 
-        # 2. En un entorno real, aquí harías el hash de la contraseña (ej. passlib / bcrypt)
-        contrasenia_hasheada = data.contrasenia # (Simulado por simplicidad académica)
-
-        # 3. Crear la instancia del modelo ORM de infraestructura
-        nuevo_usuario = UsuarioModel(
+        # 2. Entidad pura de dominio (en un entorno real la contraseña se hashea con bcrypt)
+        nuevo_usuario = Usuario(
             nombre_usuario=data.nombre_usuario,
             email=data.email,
-            contrasenia=contrasenia_hasheada,
+            contrasenia=data.contrasenia,
             rol_id=data.rol_id,
-            estado_id=data.estado_id
+            estado_id=data.estado_id,
         )
 
-        # 4. Guardar a través del repositorio
+        # 3. Guardar mediante el contrato del repositorio
         return self.repository.guardar(nuevo_usuario)
+
+    def obtener_usuario(self, usuario_id: int) -> Usuario:
+        usuario = self.repository.obtener_por_id(usuario_id)
+        if not usuario:
+            raise UsuarioNoEncontradoException(f"No existe el usuario con id {usuario_id}.")
+        return usuario
+
+    def listar_usuarios(self) -> List[Usuario]:
+        return self.repository.listar_todos()
