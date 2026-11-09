@@ -1,22 +1,57 @@
-from sqlalchemy import Column, Integer, String, Time, Numeric, Boolean, ForeignKey
-from src.core.database import Base
+from dataclasses import dataclass
+from datetime import time
+from decimal import Decimal
+from typing import Optional
 
-class RestauranteModel(Base):
-    __tablename__ = "restaurante"
-    restaurant_id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String(150), nullable=False)
-    direccion = Column(String(255), nullable=False)
-    contacto = Column(String(50))
-    horario_apertura = Column(Time)
-    horario_cierre = Column(Time)
-    estado = Column(String(30), default="abierto")
+from src.modules.restaurant.domain.exceptions import DatosInvalidosException
 
-class ProductoModel(Base):
-    __tablename__ = "producto"
-    id_producto = Column(Integer, primary_key=True, index=True)
-    restaurant_id = Column(Integer, ForeignKey("restaurante.restaurant_id", ondelete="CASCADE"))
-    nombre = Column(String(100), nullable=False)
-    descripcion = Column(String)
-    precio = Column(Numeric(10, 2), nullable=False)
-    disponible = Column(Boolean, default=True)
-    categoria = Column(String(50))
+# Valores permitidos por el CHECK de la tabla restaurante (init.sql)
+ESTADOS_RESTAURANTE = ("Abierto", "Cerrado")
+
+
+@dataclass
+class Restaurante:
+    """Entidad pura de dominio: un comercio que ofrece productos."""
+    nombre: str
+    direccion: str
+    contacto: Optional[str] = None
+    horario_apertura: Optional[time] = None
+    horario_cierre: Optional[time] = None
+    estado: str = "Abierto"
+    restaurant_id: Optional[int] = None
+
+    def __post_init__(self):
+        if not self.nombre or not self.nombre.strip():
+            raise DatosInvalidosException("El nombre del restaurante es obligatorio.")
+        if self.estado not in ESTADOS_RESTAURANTE:
+            raise DatosInvalidosException(f"Estado inválido: {self.estado}. Use {ESTADOS_RESTAURANTE}.")
+
+    def esta_abierto(self) -> bool:
+        return self.estado == "Abierto"
+
+    def abrir(self):
+        self.estado = "Abierto"
+
+    def cerrar(self):
+        self.estado = "Cerrado"
+
+
+@dataclass
+class Producto:
+    """Entidad pura de dominio: un producto del menú de un restaurante."""
+    nombre: str
+    precio: Decimal
+    categoria: str
+    restaurant_id: int
+    descripcion: Optional[str] = None
+    disponible: bool = True
+    producto_id: Optional[int] = None
+
+    def __post_init__(self):
+        if self.precio is None or Decimal(self.precio) < 0:
+            raise DatosInvalidosException("El precio del producto no puede ser negativo.")
+        if not self.categoria or not self.categoria.strip():
+            raise DatosInvalidosException("La categoría del producto es obligatoria.")
+
+    def cambiar_disponibilidad(self, disponible: bool):
+        self.disponible = disponible

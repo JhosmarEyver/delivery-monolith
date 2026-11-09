@@ -1,148 +1,128 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+
+from src.core.database import get_db
+from src.modules.tracking.application.dtos import DisponibilidadDTO, RepartidorDTO, UbicacionDTO
+from src.modules.tracking.application.services import TrackingService
+from src.modules.tracking.domain.exceptions import (
+    DomainException,
+    OperacionNoPermitidaException,
+    RecursoNoEncontradoException,
+)
+from src.modules.tracking.infrastructure.repository_impl import (
+    RepartidorRepositorySqlAlchemy,
+    UbicacionRepositorySqlAlchemy,
+)
+from src.modules.tracking.presentation.schemas import RepartidorResponse, UbicacionResponse
 
 router = APIRouter()
 
 
-# =========================
-# Schemas
-# =========================
-
-class TrackingCreate(BaseModel):
-    order_id: int
-    status: str
-    location: str | None = None
+def get_tracking_service(db: Session = Depends(get_db)) -> TrackingService:
+    return TrackingService(RepartidorRepositorySqlAlchemy(db), UbicacionRepositorySqlAlchemy(db))
 
 
-class Tracking(TrackingCreate):
-    id: int
+def _a_http(e: DomainException) -> HTTPException:
+    if isinstance(e, RecursoNoEncontradoException):
+        code = status.HTTP_404_NOT_FOUND
+    elif isinstance(e, OperacionNoPermitidaException):
+        code = status.HTTP_409_CONFLICT
+    else:
+        code = status.HTTP_400_BAD_REQUEST
+    return HTTPException(status_code=code, detail=str(e))
 
 
-# =========================
-# Base de datos temporal
-# =========================
-
-tracking_records: List[Tracking] = []
-
-_next_id = 1
+@router.get("/health")
+def tracking_health():
+    return {"module": "tracking", "status": "ok"}
 
 
-# =========================
-# Crear registro tracking
-# =========================
+# ======================= Repartidores =======================
 
-@router.post("/", response_model=Tracking, status_code=201)
-def create_tracking(data: TrackingCreate):
-    global _next_id
-
-    tracking = Tracking(
-        id=_next_id,
-        order_id=data.order_id,
-        status=data.status,
-        location=data.location,
-    )
-
-    tracking_records.append(tracking)
-
-    _next_id += 1
-
-    return tracking
+@router.post("/repartidores", response_model=RepartidorResponse, status_code=status.HTTP_201_CREATED)
+def crear_repartidor(data: RepartidorDTO, service: TrackingService = Depends(get_tracking_service)):
+    try:
+        return service.crear_repartidor(data)
+    except DomainException as e:
+        raise _a_http(e)
 
 
-# =========================
-# Obtener todos los tracking
-# =========================
-
-@router.get("/", response_model=List[Tracking])
-def get_tracking():
-    return tracking_records
-
-
-# =========================
-# Obtener tracking por ID
-# =========================
-
-@router.get("/{tracking_id}", response_model=Tracking)
-def get_tracking_by_id(tracking_id: int):
-
-    for tracking in tracking_records:
-
-        if tracking.id == tracking_id:
-            return tracking
-
-    raise HTTPException(
-        status_code=404,
-        detail="Tracking record not found"
-    )
-
-
-# =========================
-# Obtener tracking de una orden
-# =========================
-
-@router.get("/order/{order_id}", response_model=List[Tracking])
-def get_order_tracking(order_id: int):
-
-    records = [
-        tracking
-        for tracking in tracking_records
-        if tracking.order_id == order_id
-    ]
-
-    return records
-
-
-# =========================
-# Actualizar estado
-# =========================
-
-@router.put("/{tracking_id}", response_model=Tracking)
-def update_tracking(
-    tracking_id: int,
-    data: TrackingCreate
+@router.get("/repartidores", response_model=List[RepartidorResponse])
+def listar_repartidores(
+    disponible: Optional[bool] = None, service: TrackingService = Depends(get_tracking_service)
 ):
-
-    for index, tracking in enumerate(tracking_records):
-
-        if tracking.id == tracking_id:
-
-            updated_tracking = Tracking(
-                id=tracking_id,
-                order_id=data.order_id,
-                status=data.status,
-                location=data.location,
-            )
-
-            tracking_records[index] = updated_tracking
-
-            return updated_tracking
-
-    raise HTTPException(
-        status_code=404,
-        detail="Tracking record not found"
-    )
+    return service.listar_repartidores(disponible)
 
 
-# =========================
-# Eliminar tracking
-# =========================
+@router.get("/repartidores/{repartidor_id}", response_model=RepartidorResponse)
+def obtener_repartidor(repartidor_id: int, service: TrackingService = Depends(get_tracking_service)):
+    try:
+        return service.obtener_repartidor(repartidor_id)
+    except DomainException as e:
+        raise _a_http(e)
 
-@router.delete("/{tracking_id}")
-def delete_tracking(tracking_id: int):
 
-    for index, tracking in enumerate(tracking_records):
+@router.put("/repartidores/{repartidor_id}", response_model=RepartidorResponse)
+def actualizar_repartidor(
+    repartidor_id: int, data: RepartidorDTO, service: TrackingService = Depends(get_tracking_service)
+):
+    try:
+        return service.actualizar_repartidor(repartidor_id, data)
+    except DomainException as e:
+        raise _a_http(e)
 
-        if tracking.id == tracking_id:
 
-            tracking_records.pop(index)
+@router.patch("/repartidores/{repartidor_id}/disponibilidad", response_model=RepartidorResponse)
+def cambiar_disponibilidad(
+    repartidor_id: int, data: DisponibilidadDTO, service: TrackingService = Depends(get_tracking_service)
+):
+    try:
+        return service.cambiar_disponibilidad(repartidor_id, data.disponible)
+    except DomainException as e:
+        raise _a_http(e)
 
-            return {
-                "message": "Tracking record deleted successfully"
-            }
 
-    raise HTTPException(
-        status_code=404,
-        detail="Tracking record not found"
-    )
+@router.delete("/repartidores/{repartidor_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_repartidor(repartidor_id: int, service: TrackingService = Depends(get_tracking_service)):
+    try:
+        service.eliminar_repartidor(repartidor_id)
+    except DomainException as e:
+        raise _a_http(e)
+
+
+# ======================= Ubicaciones GPS =======================
+
+@router.post(
+    "/repartidores/{repartidor_id}/ubicaciones",
+    response_model=UbicacionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def registrar_ubicacion(
+    repartidor_id: int, data: UbicacionDTO, service: TrackingService = Depends(get_tracking_service)
+):
+    try:
+        return service.registrar_ubicacion(repartidor_id, data)
+    except DomainException as e:
+        raise _a_http(e)
+
+
+@router.get("/repartidores/{repartidor_id}/ubicaciones", response_model=List[UbicacionResponse])
+def obtener_historial(
+    repartidor_id: int,
+    limite: int = Query(50, ge=1, le=500),
+    service: TrackingService = Depends(get_tracking_service),
+):
+    try:
+        return service.obtener_historial(repartidor_id, limite)
+    except DomainException as e:
+        raise _a_http(e)
+
+
+@router.get("/repartidores/{repartidor_id}/ubicacion-actual", response_model=UbicacionResponse)
+def obtener_ubicacion_actual(repartidor_id: int, service: TrackingService = Depends(get_tracking_service)):
+    try:
+        return service.obtener_ubicacion_actual(repartidor_id)
+    except DomainException as e:
+        raise _a_http(e)
