@@ -112,7 +112,7 @@ delivery-monolith/
 | payment    | Pagos (efectivo, tarjeta, QR).                          |
 | tracking   | Repartidores, ubicación GPS y seguimiento del pedido.   |
 
-### 1.3. Entidades del sistemas:
+### 1.3. Entidades del sistema:
 
 Estas son las entidades que participan dentro del sistema con sus respectivos atributos:
 
@@ -145,3 +145,38 @@ Estas son las entidades que participan dentro del sistema con sus respectivos at
 | **Pedido**      | 1 : 1        | **Pago**              | `pago.pedido_id` (**UNIQUE**, NOT NULL)                  | Cada pedido tiene como máximo un pago y cada pago corresponde a un solo pedido. `ON DELETE CASCADE`. Refuerza la regla de negocio "un solo pago por pedido".                                                                                             |
 | **Repartidor**  | 1 : N        | **UbicacionTracking** | `ubicacion_tracking.repartidor_id` (NOT NULL)            | Un repartidor reporta muchas posiciones GPS; cada posición pertenece a un solo repartidor. `ON DELETE CASCADE`.                                                                                                                                          |
 | **Usuario**     | 1 : 0..N     | **Repartidor**        | `repartidor.usuario_id` (NULL permitido, **sin UNIQUE**) | A nivel de esquema un usuario puede estar vinculado a varios repartidores y un repartidor puede no tener usuario. La intención de diseño es **1 : 1** (el repartidor es un usuario con rol `repartidor`), pero la BD no lo obliga. `ON DELETE SET NULL`. |
+
+## 2. ANTECEDENTES
+
+Los sistemas de delivery han adquirido una gran importancia en el ámbito comercial y gastronómico, debido a la necesidad de facilitar la compra y entrega de productos sin que los clientes tengan que desplazarse físicamente hasta los establecimientos.
+
+Con el crecimiento de este tipo de aplicaciones, también surge la necesidad de desarrollar sistemas de software capaces de adaptarse al incremento de usuarios, transacciones y operaciones simultáneas. Para responder a estas necesidades, la ingeniería de software contempla diferentes arquitecturas que permiten organizar los componentes de una aplicación según los requerimientos del proyecto.
+
+Entre estas alternativas se encuentran la arquitectura monolítica modular, que permite organizar una aplicación en módulos independientes dentro de una misma estructura; la arquitectura cliente-servidor, que separa las responsabilidades entre la interfaz del usuario y el servidor encargado de procesar las solicitudes; y la arquitectura de microservicios, que distribuye las funcionalidades del sistema en servicios independientes que pueden desarrollarse, desplegarse y escalarse de manera individual.
+
+En este contexto, surge el proyecto Sistema Delivery como una iniciativa académica orientada a implementar y estudiar estos tres enfoques arquitectónicos, utilizando un mismo contexto de negocio para comprender cómo influye cada arquitectura en la estructura y escalabilidad de una solución de software.
+
+## 3. PLANTEAMIENTO DEL PROBLEMA
+
+El desarrollo de aplicaciones de delivery implica gestionar diferentes procesos y usuarios, entre ellos el registro de clientes, la administración de restaurantes, la gestión de pedidos y el seguimiento de las entregas. A medida que una plataforma de este tipo crece, también aumenta la complejidad de sus operaciones y la cantidad de recursos necesarios para garantizar su correcto funcionamiento.
+
+Uno de los principales desafíos en el desarrollo de estos sistemas es establecer una arquitectura de software que permita organizar adecuadamente sus componentes y responder al crecimiento de la demanda.
+
+Por esta razón, surge la necesidad de estudiar y aplicar diferentes enfoques arquitectónicos que permitan identificar alternativas para mejorar la organización interna, la independencia de los componentes y la capacidad de escalamiento del sistema.
+
+Ante esta situación, se plantea la siguiente interrogante:
+
+**¿Cómo influye la aplicación de las arquitecturas monolítica modular, cliente-servidor y de microservicios en la escalabilidad, organización y mantenibilidad de un sistema de delivery?**
+
+## 4. OBJETIVOS
+
+### 4.1. Objetivo General
+
+Desarrollar un sistema web de delivery mediante la aplicación de las arquitecturas monolítica modular, cliente-servidor y de microservicios, con la finalidad de analizar sus características y comprender cómo contribuyen a mejorar la escalabilidad, organización y mantenibilidad del software.
+
+### 4.2. Objetivos Especificos
+
+- Analizar el modelo del negocio y flujo de trabajo del sistema delivery.
+- Diseñar la estructura funcional del sistema delivery, identificando los módulos, componentes y responsabilidades correspondientes a cada tipo de usuario.
+- Implementar progresivamente los enfoques arquitectónicos propuestos, aplicando sus principios de organización y separación de responsabilidades.
+- Identificar las ventajas y limitaciones de cada enfoque arquitectónico en función de las necesidades y el crecimiento del sistema.
