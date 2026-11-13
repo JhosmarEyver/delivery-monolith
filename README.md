@@ -1,2 +1,22 @@
-## INTRODUCCION
-MI NOMBRE ES JHOSMAR
+# SISTEMA DE DELIVERY
+
+## 1. INTRODUCCIÓN
+
+El presente proyecto tiene como finalidad implementar y experimentar con diferentes arquitecturas de software mediante el desarrollo de una solución basada en un modelo de negocio de delivery, diseñado y estructurado por los integrantes del proyecto. Este modelo contempla los procesos y flujos necesarios para representar las operaciones principales de un servicio de entrega, considerando actores como clientes, restaurantes, repartidores y administradores.
+
+El enfoque principal del proyecto consiste en aplicar tres tipos de arquitecturas de software: monolítica modular, cliente-servidor y microservicios, mediante la implementación y puesta en funcionamiento de sus respectivos servidores. Para ello, se utilizarán tecnologías y herramientas que permitan estructurar los componentes, establecer la comunicación entre ellos y gestionar las operaciones definidas en el modelo de negocio.
+
+A través de esta implementación se busca comprender las características de cada arquitectura, identificar sus diferencias y analizar cómo influye cada enfoque en aspectos como la escalabilidad, modularidad, organización y mantenibilidad del software. De esta manera, el proyecto permitirá llevar a la práctica los conocimientos adquiridos en ingeniería de software, utilizando un mismo contexto de negocio para experimentar con distintas soluciones arquitectónicas.
+
+### 1.1. Herramientas Tecnologicas:
+
+| Tecnologia             | Proposito                                                                                                                                                                                                                                                                                     |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Python 3.10            | Lenguaje base del monolito. La versión la fija el Dockerfile (python:3.10-slim) y permite usar type hints modernos, dataclasses y match-style unions que sostienen toda la arquitectura por capas.                                                                                            |
+| FastAPI 0.110.0        | Framework web que expone los 5 módulos como API REST. Aporta APIRouter (un router por módulo), Depends (inyección de dependencias que conecta servicios con repositorios), response_model (contrato de salida), HTTPException y los códigos de estado (201, 204, 400, 402, 404, 409).         |
+| SQLAlchemy 2.0.28      | ORM y capa de acceso a datos: define las 12 tablas en los infrastructure/models_db.py (Base, Column, ForeignKey, relationship), gestiona las sesiones (sessionmaker) y ejecuta las consultas dentro de los repository_impl.py. Su aislamiento es deliberado: solo aparece en infraestructura. |
+| Git & GitHub           | Control de versiones del proyecto                                                                                                                                                                                                                                                             |
+| SQL                    | Fuente de verdad del esquema. Crea el schema delivery, las 12 tablas en orden de dependencias y siembra los catálogos rol y estado. Se monta como volumen de inicialización de Postgres, por eso la app usa search_path=delivery,public.                                                      |
+| PostgreSQL 15 (Alpine) | Motor de base de datos relacional. Aporta lo que el modelo necesita: esquemas (delivery), SERIAL, NUMERIC(10,2) para dinero exacto, CHECK para los enums del negocio, UNIQUE para "un pago por pedido" y ON DELETE CASCADE/SET NULL para la integridad entre módulos.                         |
+| Docker                 | Empaqueta la aplicación con sus dependencias en una imagen reproducible, de modo que el proyecto corra igual en cualquier máquina sin instalar Python ni Postgres localmente.                                                                                                                 |
+| Docker Compose         | Orquesta los dos servicios (postgres-db y delivery-app), la red delivery-network, el volumen persistente y el depends_on con healthcheck (pg_isready) para que la API no arranque antes que la base.                                                                                          |
